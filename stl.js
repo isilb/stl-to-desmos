@@ -83,13 +83,19 @@ function parseSTL(data) {
 
   // Validate data size based on number of triangles
   const expectedDataSize = expectedHeaderSize + numTriangles * 50; // Each triangle has 12 bytes (3 floats per normal vector and vertex)
-  if (data.byteLength < expectedDataSize) {
-    throw new Error('Invalid STL file: Data size mismatch with number of triangles');
-  }
+  //if (data.byteLength < expectedDataSize) {
+  //  throw new Error('Invalid STL file: Data size mismatch with number of triangles');
+//  }
 
   const triangles = [];
   for (let i = 0; i < numTriangles; i++) {
     try {
+      // Calculate offsets
+      const offset = expectedHeaderSize + i * 50;
+
+      console.log('Processing triangle', i, 'Offset:', offset);
+
+      
       // Read normal vector
       const normalX = reader.getFloat32(expectedHeaderSize + i * 50);
       const normalY = reader.getFloat32(expectedHeaderSize + i * 50 + 4);
@@ -109,7 +115,15 @@ function parseSTL(data) {
       const vertex3X = reader.getFloat32(expectedHeaderSize + i * 50 + 36);
       const vertex3Y = reader.getFloat32(expectedHeaderSize + i * 50 + 40);
       const vertex3Z = reader.getFloat32(expectedHeaderSize + i * 50 + 44);
-
+			
+      // Validate triangle data (optional)
+      if (isNaN(normalX) || isNaN(normalY) || isNaN(normalZ) ||
+          isNaN(vertex1X) || isNaN(vertex1Y) || isNaN(vertex1Z) ||
+          isNaN(vertex2X) || isNaN(vertex2Y) || isNaN(vertex2Z) ||
+          isNaN(vertex3X) || isNaN(vertex3Y) || isNaN(vertex3Z)) {
+        throw new Error('Invalid triangle data');
+      }
+      
       // Create triangle object
       const triangle = {
         normal: [normalX, normalY, normalZ],
