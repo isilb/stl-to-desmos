@@ -9,3 +9,4 @@ After parsing the data, the user will receive some equations to copy and paste i
 ## Current/Future Work
 - Parse more complex geometries
 - Other bug fixes
+- Make easier to use / more like [MeshlabJS](https://www.meshlabjs.net/)
