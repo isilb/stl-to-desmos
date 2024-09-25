@@ -10,3 +10,4 @@ After parsing the data, the user will receive some equations to copy and paste i
 - Parse more complex geometries
 - Other bug fixes
 - Make easier to use / more like [MeshlabJS](https://www.meshlabjs.net/)
+- Provide compatibility with other 3D object files
