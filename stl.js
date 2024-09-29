@@ -15,12 +15,12 @@ function processSTLFile(file) {
       if (file.size <= 0) {
         throw new Error('Invalid file size');
       }
-        
+
         // Parse the STL data (adjust parsing logic based on STL format)
         const stlData = parseSTL(event.target.result);
 
         // Extract key points or features
-        const keyPoints = extractKeyPoints(stlData);
+        const keyPoints = extractFeatures(stlData);
 
         // Perform curve fitting or feature extraction
         const equations = deriveEquations(keyPoints);
@@ -41,7 +41,7 @@ function processSTLFile(file) {
         setTimeout(() => {
           popup.remove();
         }, 10000); // Remove popup after 10 seconds
-        
+
           console.log(`Derived Equations:\n${equations.join('\n')}`);
       } catch (error) {
         console.error('Error processing STL file:', error);
@@ -95,7 +95,7 @@ function parseSTL(data) {
 
       console.log('Processing triangle', i, 'Offset:', offset);
 
-      
+
       // Read normal vector
       const normalX = reader.getFloat32(expectedHeaderSize + i * 50);
       const normalY = reader.getFloat32(expectedHeaderSize + i * 50 + 4);
@@ -115,7 +115,7 @@ function parseSTL(data) {
       const vertex3X = reader.getFloat32(expectedHeaderSize + i * 50 + 36);
       const vertex3Y = reader.getFloat32(expectedHeaderSize + i * 50 + 40);
       const vertex3Z = reader.getFloat32(expectedHeaderSize + i * 50 + 44);
-			
+
       // Validate triangle data (optional)
       if (isNaN(normalX) || isNaN(normalY) || isNaN(normalZ) ||
           isNaN(vertex1X) || isNaN(vertex1Y) || isNaN(vertex1Z) ||
@@ -123,7 +123,7 @@ function parseSTL(data) {
           isNaN(vertex3X) || isNaN(vertex3Y) || isNaN(vertex3Z)) {
         throw new Error('Invalid triangle data');
       }
-      
+
       // Create triangle object
       const triangle = {
         normal: [normalX, normalY, normalZ],
@@ -172,11 +172,68 @@ function calculatePlaneEq(normal, point) {
     return [nx, ny, nz, D];
 }
 
-  // Function to derive equations
-  function calculatePlaneEquation(triangle) {
-    // ... (implement plane equation calculation)
-    return { normal: [nx, ny, nz], d: d }; // Assuming equation: nx*x + ny*y + nz*z + d = 0
-  }
+// Function to derive equations
+function calculatePlaneEquation(triangle) {
+    // Check if the triangle forms a valid plane
+    if (!isPlane(triangle)) {
+        return null; // Not a plane, return null
+    }
+
+    // Calculate the plane normal vector from any two vertices
+    const v1 = triangle.vertices[0];
+    const v2 = triangle.vertices[1];
+    const normal = calculateNormal(v1, v2);
+
+    // Take any vertex as a point on the plane
+    const point = triangle.vertices[0];
+
+    // Calculate the plane equation coefficients (A, B, C, D) in the form Ax + By + Cz + D = 0
+    const [A, B, C] = normal;
+    const D = -(A * point[0] + B * point[1] + C * point[2]);
+
+    // Return the plane equation as an object
+    return { normal: [A, B, C], d: D };
+}
+
+// Central difference method for numerical differentiation
+function centralDiff(x, y, h) {
+    const n = x.length;
+    const dydx = new Array(n);
+  
+    // Forward difference for the first point
+    dydx[0] = (y[1] - y[0]) / h;
+  
+    // Central difference for interior points
+    for (let i = 1; i < n - 1; i++) {
+      dydx[i] = (y[i + 1] - y[i - 1]) / (2 * h);
+    }
+  
+    // Backward difference for the last point
+    dydx[n - 1] = (y[n - 1] - y[n - 2]) / h;
+  
+    return dydx;
+}
+  
+// 4th-order Runge-Kutta 
+function rk(f, y0, x0, h, n) {
+    const y = [y0];
+    const x = [x0];
+  
+    for (let i = 0; i < n; i++) {
+      const k1 = h * f(x[i], y[i]);
+      const k2 = h * f(x[i] + h / 2, y[i] + k1 / 2);
+      const k3 = h * f(x[i] + h / 2, y[i] + k2 / 2);
+      const k4 = h * f(x[i] + h, y[i] + k3);
+  
+      const y_new = y[i] + (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+      const x_new = x[i] + h;
+  
+      y.push(y_new);
+      x.push(x_new);
+    }
+  
+    return { x, y };
+}
 
 // Function to extract key points
 function extractFeatures(triangles) {
@@ -186,9 +243,14 @@ function extractFeatures(triangles) {
     for (const triangle of triangles) {
       // ... (use plane detection algorithms)
       if (isPlane(triangle)) {
-        features.push({ type: 'plane', ...calculatePlaneEquation(triangle) });
+        const planeEquation = calculatePlaneEquation(triangle);
+        if (planeEquation) { // Check if the equation is valid (not null)
+          features.push({ type: 'plane', ...planeEquation });
+        }
       }
     }
+
+    // Decide what each nth derivative means...
 
     return features;
   }
