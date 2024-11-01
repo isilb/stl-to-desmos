@@ -12,3 +12,4 @@ After parsing the data, the user will receive some equations to copy and paste i
 - Other bug fixes
 - Make easier to use / more like [MeshlabJS](https://www.meshlabjs.net/)
 - Provide compatibility with other 3D object files
+- Provide integration with Universal Scene Description
